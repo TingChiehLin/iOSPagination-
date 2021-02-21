@@ -6,19 +6,18 @@
 //
 
 import Foundation
-
+ 
 protocol DataManagerDelegate {
-    func didUpdatePhoto(photo: DataFormat)
+    func didUpdatePhoto(photo: [Photo])
     func didFailWithError(error: Error)
 }
 
 struct FetchDataManager {
     let fetchURL = "https://picsum.photos/v2/list"
     var delegate: DataManagerDelegate?
-
-    func fetchData(_ pageNumber: Int) {
-        let urlString = "\(fetchURL)?page=\(pageNumber)&limit=100"
-        print("urlString: \(urlString)")
+    
+    func fetchData(_ pageNumber: Int){
+        let urlString = "\(fetchURL)?page=\(pageNumber)&limit=60"
         performRequest(with: urlString)
     }
     
@@ -31,10 +30,12 @@ struct FetchDataManager {
                     self.delegate?.didFailWithError(error: error!)
                     return
                 }
-                
+       
                 if let safeData = data {
                     if let photoData = self.parseJSON(safeData) {
-                        self.delegate?.didUpdatePhoto(photo:photoData)
+                      DispatchQueue.main.async {
+                            self.delegate?.didUpdatePhoto(photo:photoData)
+                      }
                     }
                 }
             }
@@ -42,11 +43,11 @@ struct FetchDataManager {
         }
     }
     
-    func parseJSON(_ data: Data) -> DataFormat? {
+    func parseJSON(_ data: Data) -> [Photo]? {
         let decoder = JSONDecoder()
         do {
-            let decodeData = try decoder.decode(DataFormat.self, from: data)
-            print("decodeData:\(decodeData)")
+            let decodeData = try decoder.decode([Photo].self, from: data)
+//            print("decodeData:\(decodeData)")
             return decodeData
         } catch {
             delegate?.didFailWithError(error: error)
