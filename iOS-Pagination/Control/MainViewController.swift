@@ -10,10 +10,8 @@ import UIKit
 class MainViewController: UIViewController {
 
     @IBOutlet weak var tableView: UITableView!
-    var fetchDataManager = FetchDataManager()
+    let fetchDataManager = FetchDataManager()
     var currentPage = 0
-    var pageNumber = 0
-    
     private var photosList: [Photo] = []
     
     override func viewDidLoad() {
@@ -21,27 +19,28 @@ class MainViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
 //        tableView.register(UITableViewCell.self, forCellReuseIdentifier: K.cellIdentifier)
-        currentPage = pageNumber
         fetchDataManager.delegate = self
         fetchDataManager.fetchData(currentPage)
     }
     
-}
-
-//MARK: - Spiner
-private func createSpinerFooter() -> UIView {
-    let footerView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-    let spinner = UIActivityIndicatorView()
-    footerView.addSubview(spinner)
-    return footerView
+    //MARK: - Spiner
+    private func createSpinerFooter() -> UIView {
+        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.frame.size.width, height: 100))
+        let spinner = UIActivityIndicatorView()
+        spinner.color = UIColor.black
+        spinner.center = footerView.center
+        footerView.addSubview(spinner)
+        return footerView
+    }
 }
 
 //MARK: - DataManagerDelegate
 extension MainViewController: DataManagerDelegate {
     
     func didUpdatePhoto(photo: [Photo]) {
-        self.photosList = photo
+        self.photosList.append(contentsOf: photo)
         tableView.reloadData()
+        fetchDataManager.isPaginating = false
     }
     
     func didFailWithError(error: Error) {
@@ -67,7 +66,6 @@ extension MainViewController: UITableViewDataSource {
 //MARK: - UITableViewDelegate
 extension MainViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        print(indexPath.row)
         let detailVcontroller = DetailViewController(index: indexPath.row, image: photosList[indexPath.row])
         guard let nav = navigationController else {
            return
@@ -77,5 +75,20 @@ extension MainViewController: UITableViewDelegate {
     }
 }
 
+//MARK: - UIScrollViewDelegate
+extension MainViewController: UIScrollViewDelegate {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let position = scrollView.contentOffset.y
+        if position > (tableView.contentSize.height - 100 - scrollView.frame.size.height) {
+            // fetch more data
+            guard !fetchDataManager.isPaginating else {
+                return
+            }
+            self.tableView.tableFooterView = createSpinerFooter()
+            currentPage += 1
+            fetchDataManager.fetchData(currentPage)
+        }
+    }
+}
 
 

@@ -12,17 +12,20 @@ protocol DataManagerDelegate {
     func didFailWithError(error: Error)
 }
 
-struct FetchDataManager {
+final class FetchDataManager {
     let fetchURL = "https://picsum.photos/v2/list"
     var delegate: DataManagerDelegate?
+    var isPaginating: Bool = false
+//    let mainViewController = MainViewController()
     
     func fetchData(_ pageNumber: Int){
+        self.isPaginating = true
         let urlString = "\(fetchURL)?page=\(pageNumber)&limit=60"
         performRequest(with: urlString)
     }
     
     func performRequest(with urlString: String) {
-        
+
         if let url = URL(string: urlString) {
             let session = URLSession(configuration: .default)
             let task = session.dataTask(with: url) { (data, response, error) in
@@ -33,9 +36,11 @@ struct FetchDataManager {
        
                 if let safeData = data {
                     if let photoData = self.parseJSON(safeData) {
-                      DispatchQueue.main.async {
+                        DispatchQueue.main.async {
                             self.delegate?.didUpdatePhoto(photo:photoData)
-                      }
+//                            self.mainViewController.tableView.tableFooterView = nil
+                        }
+                        
                     }
                 }
             }
@@ -47,7 +52,6 @@ struct FetchDataManager {
         let decoder = JSONDecoder()
         do {
             let decodeData = try decoder.decode([Photo].self, from: data)
-//            print("decodeData:\(decodeData)")
             return decodeData
         } catch {
             delegate?.didFailWithError(error: error)
